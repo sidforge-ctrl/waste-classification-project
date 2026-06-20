@@ -65,27 +65,16 @@ model = tf.keras.Sequential([
 
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
-# We start with a pre-trained MobileNet model, adding layers to classify waste images into O or R.
-
 history = model.fit(
     train_data,
     validation_data=test_data,
-    epochs=8  # start with 8; increase later if accuracy is still climbing
+    epochs=8 
 )
 
-# WHY epochs=8: with a frozen pretrained base, you only need to train
-# the small classification head (GlobalAveragePooling2D + Dense layer).
-# That converges fast -- 5-10 epochs is normal. Training from scratch
-# would need 30-50+ epochs, which is the whole point of transfer learning.
-
-# ---- CELL 7: Evaluate on test set ----
 test_loss, test_accuracy = model.evaluate(test_data)
 print(f"Test Accuracy: {test_accuracy * 100:.2f}%")
 print(f"Test Loss: {test_loss:.4f}")
 
-# This gives you the headline number for your resume bullet.
-
-# ---- CELL 8: Plot training curves (shows you understand overfitting/underfitting) ----
 plt.figure(figsize=(12, 4))
 
 plt.subplot(1, 2, 1)
@@ -107,22 +96,16 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
-# WHY this matters: if train accuracy keeps rising but validation
-# accuracy flattens or drops, that's overfitting. Being able to point
-# at this graph and explain it in an interview is a strong signal.
-
-# ---- CELL 9: Detailed metrics -- precision, recall, F1, confusion matrix ----
 import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
 
-# Get true labels and predictions for the full test set
-test_data.reset()  # make sure generator starts from the beginning
-y_true = test_data.classes  # actual labels Keras assigned
+test_data.reset()  
+y_true = test_data.classes  
 y_pred_probs = model.predict(test_data)
-y_pred = (y_pred_probs > 0.5).astype(int).flatten()  # threshold sigmoid output at 0.5
+y_pred = (y_pred_probs > 0.5).astype(int).flatten()
 
-class_names = list(test_data.class_indices.keys())  # e.g. ['O', 'R']
+class_names = list(test_data.class_indices.keys()) 
 
 print(classification_report(y_true, y_pred, target_names=class_names))
 
@@ -134,18 +117,3 @@ plt.xlabel('Predicted')
 plt.ylabel('Actual')
 plt.title('Confusion Matrix')
 plt.show()
-
-# WHY precision/recall matter MORE than accuracy here:
-# If your dataset has more Organic than Recyclable images (check the
-# 22,564 train count split), accuracy alone can be misleading.
-# Example: if 70% of images are Organic, a lazy model that always
-# predicts "Organic" gets 70% accuracy while being useless.
-# Precision/recall per class exposes that kind of failure -- this is
-# exactly the kind of thing an interviewer probes for.
-
-# ---- CELL 10 (optional but strong): Save the model ----
-model.save('waste_classifier_mobilenetv2.h5')
-print("Model saved!")
-
-# Lets you reload it later without retraining, and you can mention
-# in your README that the trained model is included/loadable.
